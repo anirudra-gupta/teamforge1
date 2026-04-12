@@ -30,10 +30,9 @@ export async function generateUserProfile(answers: string[]) {
   - LookingFor (a short summary of the type of co-founder they are looking for)`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-flash-latest",
     contents: prompt,
     config: {
-      thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -99,10 +98,9 @@ export async function validateIdea(idea: { title: string; description: string; p
   - competitors (array of strings, top 5 competitors)`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-flash-latest",
     contents: prompt,
     config: {
-      thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -173,10 +171,9 @@ export async function rankCoFounderMatches(userProfile: any, otherProfiles: any[
   Return only the top 3 matches, sorted by score descending.`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-flash-latest",
     contents: prompt,
     config: {
-      thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -221,17 +218,14 @@ export async function chatWithLearningAssistant(messages: { role: 'user' | 'assi
   Keep responses concise, encouraging, and practical.`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-flash-latest",
     contents: [
       { role: "user", parts: [{ text: prompt }] },
       ...messages.map(m => ({
         role: m.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: m.content }]
       }))
-    ],
-    config: {
-      thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL }
-    }
+    ]
   });
 
   return response.text;

@@ -66,10 +66,9 @@ Also provide:
 - Next steps for the founder.`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-flash-latest",
     contents: prompt,
     config: {
-      thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
