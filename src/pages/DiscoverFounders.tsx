@@ -193,8 +193,8 @@ export default function DiscoverFounders() {
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[#903f00] mb-4">{founder.headline || 'Visionary Founder'}</p>
                 
                 <div className="flex flex-wrap gap-2 mb-6">
-                  {(founder.skills || ['Strategy', 'Growth', 'Product']).slice(0, 3).map((skill: string) => (
-                    <span key={skill} className="px-3 py-1 bg-[#fcf3e3] text-[#903f00] text-[10px] font-bold rounded-lg uppercase tracking-tight">
+                  {(founder.skills || ['Strategy', 'Growth', 'Product']).slice(0, 3).map((skill: string, idx: number) => (
+                    <span key={`${skill}-${idx}`} className="px-3 py-1 bg-[#fcf3e3] text-[#903f00] text-[10px] font-bold rounded-lg uppercase tracking-tight">
                       {skill}
                     </span>
                   ))}

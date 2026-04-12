@@ -136,8 +136,8 @@ export default function IdeaHub() {
                         {idea.tagline || idea.problem}
                       </p>
                       <div className="flex flex-wrap gap-2 mb-10">
-                        {(idea.tags || ['SaaS', 'AI-Ops', 'React']).map((tag: string) => (
-                          <span key={tag} className="px-4 py-1.5 bg-[#f6edde] rounded-xl text-[10px] font-black uppercase tracking-widest text-[#564338]">
+                        {(idea.tags || ['SaaS', 'AI-Ops', 'React']).map((tag: string, idx: number) => (
+                          <span key={`${tag}-${idx}`} className="px-4 py-1.5 bg-[#f6edde] rounded-xl text-[10px] font-black uppercase tracking-widest text-[#564338]">
                             {tag}
                           </span>
                         ))}
@@ -205,8 +205,8 @@ export default function IdeaHub() {
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-[#564338]/40 mb-4">Skills Needed</p>
                     <div className="flex flex-wrap gap-2">
-                      {(idea.neededSkills || ['Product Design', 'Growth']).slice(0, 3).map((skill: string) => (
-                        <span key={skill} className="text-xs font-bold text-[#1f1b12] bg-[#f6edde] px-3 py-1 rounded-lg">
+                      {(idea.neededSkills || ['Product Design', 'Growth']).slice(0, 3).map((skill: string, idx: number) => (
+                        <span key={`${skill}-${idx}`} className="text-xs font-bold text-[#1f1b12] bg-[#f6edde] px-3 py-1 rounded-lg">
                           {skill}
                         </span>
                       ))}

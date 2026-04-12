@@ -302,8 +302,8 @@ export default function Dashboard() {
                       </p>
 
                       <div className="flex flex-wrap gap-2 mb-8">
-                        {item.skills?.map((skill: string) => (
-                          <span key={skill} className="bg-[#fcf3e3]/50 text-[#903f00] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight">
+                        {item.skills?.map((skill: string, idx: number) => (
+                          <span key={`${skill}-${idx}`} className="bg-[#fcf3e3]/50 text-[#903f00] px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight">
                             {skill}
                           </span>
                         ))}
@@ -480,8 +480,8 @@ export default function Dashboard() {
                       "{match.matchReason}"
                     </p>
                     <div className="mt-3 flex flex-wrap gap-1">
-                      {match.skills?.slice(0, 2).map((skill: string) => (
-                        <span key={skill} className="text-[8px] font-black uppercase tracking-tighter bg-[#f6edde] text-[#564338] px-2 py-0.5 rounded-md">
+                      {match.skills?.slice(0, 2).map((skill: string, idx: number) => (
+                        <span key={`${skill}-${idx}`} className="text-[8px] font-black uppercase tracking-tighter bg-[#f6edde] text-[#564338] px-2 py-0.5 rounded-md">
                           {skill}
                         </span>
                       ))}
