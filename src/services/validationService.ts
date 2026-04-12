@@ -6,6 +6,7 @@ const getApiKey = () => {
     console.warn("GEMINI_API_KEY is missing or using a placeholder. Please configure it in the AI Studio Secrets panel.");
     return "";
   }
+  console.log("Gemini API Key is present and configured in validationService.");
   return key;
 };
 
@@ -66,7 +67,7 @@ Also provide:
 - Next steps for the founder.`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-flash-latest",
+    model: "gemini-3.1-flash-lite-preview",
     contents: prompt,
     config: {
       responseMimeType: "application/json",

@@ -6,6 +6,7 @@ const getApiKey = () => {
     console.warn("GEMINI_API_KEY is missing or using a placeholder. Please configure it in the AI Studio Secrets panel.");
     return "";
   }
+  console.log("Gemini API Key is present and configured.");
   return key;
 };
 
@@ -30,7 +31,7 @@ export async function generateUserProfile(answers: string[]) {
   - LookingFor (a short summary of the type of co-founder they are looking for)`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-flash-latest",
+    model: "gemini-3.1-flash-lite-preview",
     contents: prompt,
     config: {
       responseMimeType: "application/json",
@@ -98,7 +99,7 @@ export async function validateIdea(idea: { title: string; description: string; p
   - competitors (array of strings, top 5 competitors)`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-flash-latest",
+    model: "gemini-3.1-flash-lite-preview",
     contents: prompt,
     config: {
       responseMimeType: "application/json",
@@ -171,7 +172,7 @@ export async function rankCoFounderMatches(userProfile: any, otherProfiles: any[
   Return only the top 3 matches, sorted by score descending.`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-flash-latest",
+    model: "gemini-3.1-flash-lite-preview",
     contents: prompt,
     config: {
       responseMimeType: "application/json",
@@ -218,7 +219,7 @@ export async function chatWithLearningAssistant(messages: { role: 'user' | 'assi
   Keep responses concise, encouraging, and practical.`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-flash-latest",
+    model: "gemini-3.1-flash-lite-preview",
     contents: [
       { role: "user", parts: [{ text: prompt }] },
       ...messages.map(m => ({
