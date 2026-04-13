@@ -1,6 +1,6 @@
 export async function generateUserProfile(answers: string[]) {
-  console.log("Fetching /api/ai/generate-profile...");
-  const response = await fetch("/api/ai/generate-profile", {
+  console.log("Fetching /backend/ai/generate-profile...");
+  const response = await fetch("/backend/ai/generate-profile", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ answers })
@@ -19,7 +19,7 @@ export async function generateUserProfile(answers: string[]) {
 }
 
 export async function validateIdea(idea: any) {
-  const response = await fetch("/api/ai/validate-idea", {
+  const response = await fetch("/backend/ai/validate-idea", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ idea })
@@ -38,7 +38,7 @@ export async function validateIdea(idea: any) {
 }
 
 export async function rankCoFounderMatches(userProfile: any, otherProfiles: any[]) {
-  const response = await fetch("/api/ai/rank-matches", {
+  const response = await fetch("/backend/ai/rank-matches", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userProfile, otherProfiles })
@@ -62,7 +62,7 @@ export async function rankCoFounderMatches(userProfile: any, otherProfiles: any[
 }
 
 export async function chatWithLearningAssistant(messages: any[], userContext: any) {
-  const response = await fetch("/api/ai/chat", {
+  const response = await fetch("/backend/ai/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages, userContext })

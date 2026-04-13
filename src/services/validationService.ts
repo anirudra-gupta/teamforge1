@@ -33,7 +33,7 @@ export async function validateIdea(
   revenueModel: string,
   geography: string
 ): Promise<ValidationResult> {
-  const response = await fetch("/api/ai/validate-idea-detailed", {
+  const response = await fetch("/backend/ai/validate-idea-detailed", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ description, targetAudience, revenueModel, geography })

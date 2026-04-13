@@ -195,8 +195,48 @@ export default function Onboarding() {
     }
   };
 
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
+
+  const checkHealth = async () => {
+    try {
+      const res = await fetch("/backend/test");
+      const data = await res.json();
+      setDebugInfo(JSON.stringify(data, null, 2));
+      toast.info("Backend is reachable");
+    } catch (err: any) {
+      setDebugInfo(`Error: ${err.message}`);
+      toast.error("Backend unreachable");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#fff8f1] flex items-center justify-center p-4 md:p-8 font-sans">
+      {/* Hidden Debug Trigger: Click the Logo 5 times */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={checkHealth}
+          className="text-[8px] opacity-10 hover:opacity-100 font-black uppercase tracking-widest"
+        >
+          Debug Backend
+        </Button>
+      </div>
+      
+      {debugInfo && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-[2rem] max-w-lg w-full">
+            <h3 className="text-xl font-black mb-4">Debug Info</h3>
+            <pre className="bg-gray-100 p-4 rounded-xl text-xs overflow-auto max-h-[400px]">
+              {debugInfo}
+            </pre>
+            <Button onClick={() => setDebugInfo(null)} className="mt-6 w-full bg-[#1f1b12] text-white rounded-xl font-bold">
+              Close
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
         
         {/* Left Panel: Context & Progress */}
