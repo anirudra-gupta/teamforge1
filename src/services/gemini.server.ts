@@ -11,7 +11,18 @@ const getApiKey = () => {
   return key;
 };
 
-const ai = new GoogleGenAI({ apiKey: getApiKey() });
+let aiInstance: GoogleGenAI | null = null;
+
+const getAi = () => {
+  if (!aiInstance) {
+    const key = getApiKey();
+    if (!key) {
+      throw new Error("GEMINI_API_KEY is missing. Please add it to your environment variables in Settings.");
+    }
+    aiInstance = new GoogleGenAI({ apiKey: key });
+  }
+  return aiInstance;
+};
 
 export async function serverGenerateUserProfile(answers: string[]) {
   const prompt = `Analyze this user's answers from a startup onboarding chat and generate a structured profile.
@@ -31,6 +42,7 @@ export async function serverGenerateUserProfile(answers: string[]) {
   - Recommendations (what kind of startups they should join)
   - LookingFor (a short summary of the type of co-founder they are looking for)`;
 
+  const ai = getAi();
   const response = await ai.models.generateContent({
     model: "gemini-1.5-flash",
     contents: prompt,
@@ -91,6 +103,7 @@ export async function serverValidateIdea(idea: any) {
   - suggestions (array of strings)
   - competitors (array of strings, top 5 competitors)`;
 
+  const ai = getAi();
   const response = await ai.models.generateContent({
     model: "gemini-1.5-flash",
     contents: prompt,
@@ -164,6 +177,7 @@ export async function serverRankCoFounderMatches(userProfile: any, otherProfiles
   
   Return only the top 3 matches, sorted by score descending.`;
 
+  const ai = getAi();
   const response = await ai.models.generateContent({
     model: "gemini-1.5-flash",
     contents: prompt,
@@ -206,6 +220,7 @@ export async function serverChatWithLearningAssistant(messages: any[], userConte
   If they are watching a course, provide specific insights or answer questions related to that topic.
   Keep responses concise, encouraging, and practical.`;
 
+  const ai = getAi();
   const response = await ai.models.generateContent({
     model: "gemini-1.5-flash",
     contents: [
@@ -245,6 +260,7 @@ Also provide:
 - A list of 5 direct/indirect competitors. For each competitor, provide their name, a brief description, and a valid website link (URL).
 - Next steps for the founder.`;
 
+  const ai = getAi();
   const response = await ai.models.generateContent({
     model: "gemini-1.5-flash",
     contents: prompt,
