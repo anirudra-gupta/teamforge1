@@ -4,9 +4,10 @@
  */
 
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import Navbar from './components/Navbar';
+import { useEffect } from 'react';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
@@ -27,6 +28,24 @@ import IdeaValidation from './pages/IdeaValidation';
 function AppRoutes() {
   const { user, userData, loading } = useAuth();
   const location = useLocation();
+
+  useEffect(() => {
+    const checkAiHealth = async () => {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        if (!data.aiReady) {
+          toast.warning("Gemini API Key Missing", {
+            description: "AI features like Idea Validation and Co-founder Matching require an API key. Please add GEMINI_API_KEY to your environment variables in Settings.",
+            duration: 10000,
+          });
+        }
+      } catch (e) {
+        console.error("Health check failed:", e);
+      }
+    };
+    checkAiHealth();
+  }, []);
 
   if (loading) {
     return (

@@ -115,9 +115,9 @@ export default function CreateIdea() {
       
       setValidationResult(validation);
       toast.success("AI Validation Complete!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to validate idea:", error);
-      toast.error("Validation failed. Please try again.");
+      toast.error(error.message || "Validation failed. Please try again.");
     } finally {
       setIsValidating(false);
     }
