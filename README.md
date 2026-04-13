@@ -1,5 +1,5 @@
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="github.com/TeamForge01/teamforge.in/blob/main/public/team%20forge%20logo%202.jpeg" />
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/TeamForge01/teamforge.in/blob/main/public/team%20forge%20logo%202.jpeg" />
 </div>
 
 ## TEAM FORGE
