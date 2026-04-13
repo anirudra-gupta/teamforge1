@@ -4,45 +4,37 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../components/AuthContext';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, setDoc, getDocs, collection, query, where, limit } from 'firebase/firestore';
-import { generateUserProfile } from '../lib/gemini';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { ScrollArea } from '../components/ui/scroll-area';
+import { Textarea } from '../components/ui/textarea';
 import { Logo } from '../components/Logo';
-import { Send, User, Loader2, Sparkles, Check, X, ArrowRight, Bot } from 'lucide-react';
+import { User, Loader2, Check, X, ArrowRight, Camera, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 
-const STEPS = [
-  { id: 'name', label: 'Identity', question: "First, let's establish your identity. What's your full name and what would you like your unique @username to be?" },
-  { id: 'skills', label: 'Expertise', question: "What are your core competencies? (e.g., React, UI Design, Growth Marketing, Backend Architecture)" },
-  { id: 'interests', label: 'Interests', question: "What industries or problems are you most passionate about solving?" },
-  { id: 'projects', label: 'Experience', question: "Walk me through your last project—what worked and what didn't?" },
-  { id: 'mindset', label: 'Mindset', question: "How do you handle disagreements in a team setting? And what's the biggest challenge you've faced building something from scratch?" },
-  { id: 'goal', label: 'Vision', question: "What type of co-founder would complement your work style? (e.g., 'I prefer async work', 'I need a highly motivated partner')" }
+const ROLES = [
+  "Founder", "Developer", "Designer", "Marketer", "Product Manager", "Sales", "Other"
 ];
 
 export default function Onboarding() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<{ role: 'bot' | 'user', content: string, type?: string }[]>([
-    { role: 'bot', content: "Welcome to the Forge. I am your AI architect. Let's begin by defining your professional blueprint." },
-    { role: 'bot', content: STEPS[0].question, type: 'identity' }
-  ]);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [input, setInput] = useState('');
+  const [step, setStep] = useState(1);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Step 1: Identity
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'available' | 'taken' | 'invalid'>('idle');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+  
+  // Step 2: Profile
+  const [bio, setBio] = useState('');
+  const [role, setRole] = useState('Founder');
+  const [skills, setSkills] = useState('');
+  const [interests, setInterests] = useState('');
+  const [lookingFor, setLookingFor] = useState('');
+  const [workStyle, setWorkStyle] = useState('Collaborative');
 
   const checkUsername = async (val: string) => {
     if (val.length < 3) {
@@ -68,56 +60,22 @@ export default function Onboarding() {
     return () => clearTimeout(timer);
   }, [username]);
 
-  const handleSend = async () => {
-    if (isProcessing) return;
-
-    if (currentStepIndex === 0) {
+  const handleNext = () => {
+    if (step === 1) {
       if (!displayName.trim() || usernameStatus !== 'available') {
         toast.error("Please provide a valid name and an available username.");
         return;
       }
-      const userMessage = `My name is ${displayName} and I'll use @${username}.`;
-      setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-      proceedToNextStep();
+      setStep(2);
     } else {
-      if (!input.trim()) return;
-      const userMessage = input.trim();
-      setInput('');
-      setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-      proceedToNextStep(userMessage);
+      finalizeOnboarding();
     }
   };
 
-  const proceedToNextStep = (lastAnswer?: string) => {
-    if (currentStepIndex < STEPS.length - 1) {
-      const nextIndex = currentStepIndex + 1;
-      setCurrentStepIndex(nextIndex);
-      setTimeout(() => {
-        setMessages(prev => [...prev, { role: 'bot', content: STEPS[nextIndex].question }]);
-      }, 600);
-    } else {
-      finalizeOnboarding(lastAnswer);
-    }
-  };
-
-  const finalizeOnboarding = async (lastAnswer?: string) => {
+  const finalizeOnboarding = async () => {
     setIsProcessing(true);
-    setMessages(prev => [...prev, { role: 'bot', content: "Incredible. I am now synthesizing your responses to forge your unique founder profile. This process requires precision..." }]);
     
     try {
-      const answers = messages
-        .filter(m => m.role === 'user')
-        .map(m => m.content);
-      if (lastAnswer) answers.push(lastAnswer);
-
-      console.log("Generating profile with answers:", answers);
-      if (answers.length === 0) {
-        throw new Error("No responses found to synthesize. Please answer the questions.");
-      }
-
-      const aiProfile = await generateUserProfile(answers);
-      console.log("AI Profile generated:", aiProfile);
-      
       if (user) {
         const finalDisplayName = displayName.trim() || user.displayName || 'Anonymous Founder';
         
@@ -131,13 +89,7 @@ export default function Onboarding() {
           createdAt: new Date().toISOString()
         };
         
-        console.log("Saving User Data:", userDataPayload);
-        try {
-          await setDoc(doc(db, 'users', user.uid), userDataPayload);
-        } catch (err) {
-          console.error("Error saving user data:", err);
-          handleFirestoreError(err, OperationType.WRITE, userPath);
-        }
+        await setDoc(doc(db, 'users', user.uid), userDataPayload);
 
         // Save public profile
         const profilePath = `profiles/${user.uid}`;
@@ -146,51 +98,30 @@ export default function Onboarding() {
           username: username.toLowerCase(),
           displayName: finalDisplayName,
           photoURL: user.photoURL || `https://picsum.photos/seed/${user.uid}/200/200`,
-          bio: aiProfile.bio || "A visionary founder on TeamForge.",
-          skills: aiProfile.skills || [],
-          interests: aiProfile.interests || [],
-          role: aiProfile.role || "Founder",
-          personality: aiProfile.personality || "Determined",
-          mindsetTraits: aiProfile.mindsetTraits || [],
-          knowledgeGaps: aiProfile.knowledgeGaps || [],
-          badges: aiProfile.badges || [],
-          workStyle: aiProfile.workStyle || "Collaborative",
-          recommendations: aiProfile.recommendations || "Join a high-growth startup.",
-          lookingFor: aiProfile.lookingFor || "Complementary co-founders.",
+          bio: bio.trim() || "A visionary founder on TeamForge.",
+          skills: skills.split(',').map(s => s.trim()).filter(s => s !== ''),
+          interests: interests.split(',').map(i => i.trim()).filter(i => i !== ''),
+          role: role,
+          personality: "Determined", // Default or could add a selector
+          mindsetTraits: [],
+          knowledgeGaps: [],
+          badges: ["Early Adopter"],
+          workStyle: workStyle,
+          recommendations: "",
+          lookingFor: lookingFor.trim() || "Complementary co-founders.",
           updatedAt: new Date().toISOString()
         };
 
-        console.log("Saving Profile Data:", profileDataPayload);
-        try {
-          await setDoc(doc(db, 'profiles', user.uid), profileDataPayload);
-        } catch (err) {
-          console.error("Error saving profile data:", err);
-          handleFirestoreError(err, OperationType.WRITE, profilePath);
-        }
+        await setDoc(doc(db, 'profiles', user.uid), profileDataPayload);
 
-        toast.success("Identity forged. Welcome to the network.");
+        toast.success("Profile created. Welcome to the network.");
         navigate('/dashboard');
       } else {
         throw new Error("User session not found. Please log in again.");
       }
     } catch (error) {
       console.error("Onboarding failed:", error);
-      let errorMessage = "The synthesis failed. Please try again.";
-      
-      if (error instanceof Error) {
-        const errorText = error.message;
-        if (errorText.includes('API key not valid') || errorText.includes('API_KEY_INVALID')) {
-          errorMessage = "The Gemini API key is invalid or missing. Please ensure you have configured GEMINI_API_KEY in the Secrets panel.";
-        } else if (errorText.includes('insufficient permissions')) {
-          errorMessage = "Database permission error. Please contact support.";
-        } else if (errorText.includes('tokens limit')) {
-          errorMessage = "AI synthesis limit reached. Please try with shorter answers.";
-        } else {
-          errorMessage = errorText;
-        }
-      }
-      
-      toast.error(errorMessage);
+      toast.error(error instanceof Error ? error.message : "Failed to save profile.");
       setIsProcessing(false);
     }
   };
@@ -211,33 +142,7 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen bg-[#fff8f1] flex items-center justify-center p-4 md:p-8 font-sans">
-      {/* Hidden Debug Trigger: Click the Logo 5 times */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={checkHealth}
-          className="text-[8px] opacity-10 hover:opacity-100 font-black uppercase tracking-widest"
-        >
-          Debug Backend
-        </Button>
-      </div>
-      
-      {debugInfo && (
-        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-white p-8 rounded-[2rem] max-w-lg w-full">
-            <h3 className="text-xl font-black mb-4">Debug Info</h3>
-            <pre className="bg-gray-100 p-4 rounded-xl text-xs overflow-auto max-h-[400px]">
-              {debugInfo}
-            </pre>
-            <Button onClick={() => setDebugInfo(null)} className="mt-6 w-full bg-[#1f1b12] text-white rounded-xl font-bold">
-              Close
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+      <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
         
         {/* Left Panel: Context & Progress */}
         <motion.div 
@@ -259,11 +164,11 @@ export default function Onboarding() {
                 className="space-y-4"
               >
                 <h2 className="text-4xl font-black text-[#1f1b12] leading-tight">
-                  Forge your <br/>
-                  <span className="text-[#903f00]">Creative Core.</span>
+                  Setup your <br/>
+                  <span className="text-[#903f00]">Profile.</span>
                 </h2>
                 <p className="text-[#564338] font-bold italic opacity-60 leading-relaxed">
-                  Our AI architect learns from your unique blend of skills to build the foundation of your digital venture.
+                  Create your professional identity to connect with potential co-founders.
                 </p>
               </motion.div>
 
@@ -271,146 +176,75 @@ export default function Onboarding() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-end">
                     <span className="text-[10px] font-black uppercase tracking-widest text-[#903f00]">Progress</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#1f1b12]">{Math.round(((currentStepIndex + 1) / STEPS.length) * 100)}%</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#1f1b12]">{step === 1 ? '50%' : '100%'}</span>
                   </div>
                   <div className="h-1.5 w-full bg-[#564338]/10 rounded-full overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: `${((currentStepIndex + 1) / STEPS.length) * 100}%` }}
+                      animate={{ width: step === 1 ? '50%' : '100%' }}
                       className="h-full bg-[#903f00] rounded-full"
                     />
                   </div>
                 </div>
 
-                {STEPS.map((step, idx) => (
-                  <motion.div 
-                    key={step.id} 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + (idx * 0.05) }}
-                    className="flex items-center gap-4 group"
-                  >
-                    <div className={cn(
-                      "w-2 h-2 rounded-full transition-all duration-500",
-                      idx < currentStepIndex ? "bg-[#903f00] scale-125" : 
-                      idx === currentStepIndex ? "bg-[#903f00] animate-pulse scale-150" : "bg-[#564338]/20"
-                    )} />
-                    <span className={cn(
-                      "text-[10px] font-black uppercase tracking-[0.2em] transition-colors",
-                      idx <= currentStepIndex ? "text-[#1f1b12]" : "text-[#564338]/40"
-                    )}>
-                      {step.label}
-                    </span>
-                  </motion.div>
-                ))}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className={cn("w-2 h-2 rounded-full", step >= 1 ? "bg-[#903f00]" : "bg-[#564338]/20")} />
+                    <span className={cn("text-[10px] font-black uppercase tracking-widest", step >= 1 ? "text-[#1f1b12]" : "text-[#564338]/40")}>Identity</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className={cn("w-2 h-2 rounded-full", step >= 2 ? "bg-[#903f00]" : "bg-[#564338]/20")} />
+                    <span className={cn("text-[10px] font-black uppercase tracking-widest", step >= 2 ? "text-[#1f1b12]" : "text-[#564338]/40")}>Profile Details</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="pt-12 border-t border-[#111111]/5"
-          >
-            <div className="flex items-center gap-3 p-4 bg-[#fcf3e3] rounded-2xl border border-[#903f00]/10">
-              <Sparkles className="w-5 h-5 text-[#903f00]" />
-              <p className="text-[10px] font-black text-[#903f00] uppercase tracking-widest">AI Synthesis Active</p>
-            </div>
-          </motion.div>
         </motion.div>
 
-        {/* Right Panel: Chat Interface */}
-        <div className="lg:col-span-8 bg-white rounded-[3rem] shadow-[0px_40px_80px_rgba(17,17,17,0.06)] border border-[#111111]/5 flex flex-col overflow-hidden h-[800px] max-h-[90vh] min-h-[500px]">
-          {/* Chat Header */}
-          <div className="p-8 border-b border-[#111111]/5 flex items-center justify-between bg-[#fcf3e3]/30 shrink-0">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#1f1b12] rounded-2xl flex items-center justify-center shadow-lg">
-                <Bot className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="font-black text-[#1f1b12] tracking-tight">AI Architect</h3>
-                <p className="text-[10px] font-bold text-[#903f00] uppercase tracking-widest">Synthesis Engine v3.0</p>
-              </div>
-            </div>
-            <div className="px-4 py-2 bg-white rounded-xl border border-[#111111]/5 shadow-sm">
-              <span className="text-[10px] font-black text-[#1f1b12] uppercase tracking-widest">Step {currentStepIndex + 1} / {STEPS.length}</span>
-            </div>
-          </div>
-
-          {/* Messages Area */}
-          <ScrollArea className="flex-1 min-h-0 p-8" viewportRef={scrollRef}>
-            <div className="max-w-2xl mx-auto space-y-8">
-              <AnimatePresence mode="popLayout">
-                {messages.map((m, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                    className={cn(
-                      "flex gap-4",
-                      m.role === 'user' ? "flex-row-reverse" : "flex-row"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm",
-                      m.role === 'bot' ? "bg-[#fcf3e3] text-[#903f00]" : "bg-[#1f1b12] text-white"
-                    )}>
-                      {m.role === 'bot' ? <Bot className="w-5 h-5" /> : <User className="w-5 h-5" />}
-                    </div>
-                    <div className={cn(
-                      "max-w-[85%] p-6 rounded-[2rem] text-sm font-bold leading-relaxed shadow-sm",
-                      m.role === 'bot' 
-                        ? "bg-[#fcf3e3]/50 text-[#1f1b12] rounded-tl-none border border-[#903f00]/5" 
-                        : "bg-[#1f1b12] text-white rounded-tr-none shadow-xl"
-                    )}>
-                      {m.content}
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              
-              {isProcessing && (
-                <motion.div 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }} 
-                  className="flex gap-4"
+        {/* Right Panel: Form Interface */}
+        <div className="lg:col-span-8 bg-white rounded-[3rem] shadow-[0px_40px_80px_rgba(17,17,17,0.06)] border border-[#111111]/5 flex flex-col overflow-hidden">
+          <div className="p-10 flex-1">
+            <AnimatePresence mode="wait">
+              {step === 1 ? (
+                <motion.div
+                  key="step1"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-8"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-[#fcf3e3] text-[#903f00] flex items-center justify-center">
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-black text-[#1f1b12]">Basic Info</h3>
+                    <p className="text-sm font-bold text-[#564338]/60">How should the community recognize you?</p>
                   </div>
-                  <div className="bg-[#fcf3e3]/50 p-6 rounded-3xl rounded-tl-none">
-                    <div className="flex gap-1">
-                      <span className="w-1.5 h-1.5 bg-[#903f00] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 bg-[#903f00] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 bg-[#903f00] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+
+                  <div className="flex flex-col items-center gap-4 py-4">
+                    <div className="relative group">
+                      <div className="w-24 h-24 rounded-full bg-[#fcf3e3] flex items-center justify-center border-4 border-white shadow-xl overflow-hidden">
+                        {user?.photoURL ? (
+                          <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-10 h-10 text-[#903f00]" />
+                        )}
+                      </div>
+                      <button className="absolute bottom-0 right-0 p-2 bg-[#1f1b12] text-white rounded-full shadow-lg hover:bg-[#903f00] transition-colors">
+                        <Camera className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                </motion.div>
-              )}
-            </div>
-          </ScrollArea>
 
-          {/* Input Area */}
-          <div className="p-8 bg-[#fcf3e3]/30 border-t border-[#111111]/5 shrink-0">
-            <div className="max-w-2xl mx-auto">
-              {currentStepIndex === 0 ? (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-4"
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-[#564338]/60 ml-2">Full Name</label>
                       <Input 
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="John Doe"
-                        className="bg-white border-none h-14 rounded-2xl shadow-sm focus-visible:ring-[#903f00] font-bold"
+                        placeholder="e.g. Alex Rivera"
+                        className="bg-[#fcf3e3]/30 border-none h-14 rounded-2xl shadow-sm focus-visible:ring-[#903f00] font-bold"
                       />
                     </div>
+
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-[#564338]/60 ml-2">Username</label>
                       <div className="relative">
@@ -418,8 +252,8 @@ export default function Onboarding() {
                         <Input 
                           value={username}
                           onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                          placeholder="johndoe"
-                          className="bg-white border-none h-14 pl-10 rounded-2xl shadow-sm focus-visible:ring-[#903f00] font-bold"
+                          placeholder="username"
+                          className="bg-[#fcf3e3]/30 border-none h-14 pl-10 rounded-2xl shadow-sm focus-visible:ring-[#903f00] font-bold"
                         />
                         <div className="absolute right-4 top-1/2 -translate-y-1/2">
                           {isCheckingUsername ? <Loader2 className="w-4 h-4 animate-spin text-[#903f00]" /> : 
@@ -427,65 +261,118 @@ export default function Onboarding() {
                            usernameStatus === 'taken' ? <X className="w-4 h-4 text-rose-500" /> : null}
                         </div>
                       </div>
+                      {usernameStatus === 'taken' && <p className="text-[10px] text-rose-500 font-bold ml-2">This username is already claimed.</p>}
                     </div>
                   </div>
+
                   <Button 
-                    onClick={handleSend}
+                    onClick={handleNext}
                     disabled={!displayName.trim() || usernameStatus !== 'available'}
-                    className="w-full bg-[#1f1b12] text-white h-14 rounded-2xl font-black text-lg hover:bg-[#903f00] transition-all shadow-xl"
+                    className="w-full bg-[#1f1b12] text-white h-16 rounded-2xl font-black text-lg hover:bg-[#903f00] transition-all shadow-xl mt-8"
                   >
-                    Confirm Identity <ArrowRight className="ml-2 w-5 h-5" />
+                    Continue <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </motion.div>
               ) : (
-                <form 
-                  onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                  className="relative"
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-6"
                 >
-                  <div className="flex gap-3">
-                    <div className="flex-1 relative">
-                      <Input 
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder="Type your response..."
-                        disabled={isProcessing}
-                        className="w-full bg-white border-none h-16 pl-6 pr-6 rounded-2xl shadow-xl focus-visible:ring-[#903f00] font-bold text-lg"
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-black text-[#1f1b12]">Professional Bio</h3>
+                    <p className="text-sm font-bold text-[#564338]/60">Tell the world what you're building.</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[#564338]/60 ml-2">Bio</label>
+                      <Textarea 
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        placeholder="Write a short bio like Instagram..."
+                        className="bg-[#fcf3e3]/30 border-none min-h-[100px] rounded-2xl shadow-sm focus-visible:ring-[#903f00] font-bold resize-none"
                       />
                     </div>
-                    {(STEPS[currentStepIndex].id === 'skills' || STEPS[currentStepIndex].id === 'projects') && (
-                      <Button
-                        type="button"
-                        onClick={() => {
-                          const skipMsg = "Skip for now";
-                          setMessages(prev => [...prev, { role: 'user', content: skipMsg }]);
-                          proceedToNextStep(skipMsg);
-                        }}
-                        disabled={isProcessing}
-                        variant="outline"
-                        className="h-16 px-6 rounded-2xl border-2 border-[#1f1b12]/10 font-black text-[#564338] hover:bg-[#fcf3e3] transition-all"
-                      >
-                        Skip
-                      </Button>
-                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-[#564338]/60 ml-2">Primary Role</label>
+                        <select 
+                          value={role}
+                          onChange={(e) => setRole(e.target.value)}
+                          className="w-full bg-[#fcf3e3]/30 border-none h-14 px-4 rounded-2xl shadow-sm focus:ring-2 focus:ring-[#903f00] font-bold outline-none appearance-none"
+                        >
+                          {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-[#564338]/60 ml-2">Work Style</label>
+                        <select 
+                          value={workStyle}
+                          onChange={(e) => setWorkStyle(e.target.value)}
+                          className="w-full bg-[#fcf3e3]/30 border-none h-14 px-4 rounded-2xl shadow-sm focus:ring-2 focus:ring-[#903f00] font-bold outline-none appearance-none"
+                        >
+                          <option value="Collaborative">Collaborative</option>
+                          <option value="Independent">Independent</option>
+                          <option value="Hybrid">Hybrid</option>
+                          <option value="Async-First">Async-First</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[#564338]/60 ml-2">Skills (comma separated)</label>
+                      <Input 
+                        value={skills}
+                        onChange={(e) => setSkills(e.target.value)}
+                        placeholder="React, UI Design, Marketing..."
+                        className="bg-[#fcf3e3]/30 border-none h-14 rounded-2xl shadow-sm focus-visible:ring-[#903f00] font-bold"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[#564338]/60 ml-2">Interests (comma separated)</label>
+                      <Input 
+                        value={interests}
+                        onChange={(e) => setInterests(e.target.value)}
+                        placeholder="AI, FinTech, Sustainability..."
+                        className="bg-[#fcf3e3]/30 border-none h-14 rounded-2xl shadow-sm focus-visible:ring-[#903f00] font-bold"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[#564338]/60 ml-2">Looking For</label>
+                      <Input 
+                        value={lookingFor}
+                        onChange={(e) => setLookingFor(e.target.value)}
+                        placeholder="e.g. Technical Co-founder with AI expertise"
+                        className="bg-[#fcf3e3]/30 border-none h-14 rounded-2xl shadow-sm focus-visible:ring-[#903f00] font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 pt-4">
                     <Button 
-                      type="submit"
-                      disabled={isProcessing || !input.trim()}
-                      className="bg-[#1f1b12] text-white hover:bg-[#903f00] rounded-2xl px-8 h-16 font-black transition-all shadow-xl flex items-center gap-2"
+                      variant="ghost"
+                      onClick={() => setStep(1)}
+                      className="flex-1 h-16 rounded-2xl font-black text-[#564338] hover:bg-[#fcf3e3]"
                     >
-                      <span>Send</span>
-                      <Send className="w-4 h-4" />
+                      Back
+                    </Button>
+                    <Button 
+                      onClick={handleNext}
+                      disabled={isProcessing}
+                      className="flex-[2] bg-[#1f1b12] text-white h-16 rounded-2xl font-black text-lg hover:bg-[#903f00] transition-all shadow-xl"
+                    >
+                      {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : "Complete Profile"}
                     </Button>
                   </div>
-                </form>
+                </motion.div>
               )}
-              <div className="flex items-center justify-center gap-2 mt-4 opacity-40">
-                <div className="w-1 h-1 bg-[#564338] rounded-full" />
-                <p className="text-[10px] font-black text-[#564338] uppercase tracking-widest">
-                  Press Enter to transmit
-                </p>
-                <div className="w-1 h-1 bg-[#564338] rounded-full" />
-              </div>
-            </div>
+            </AnimatePresence>
           </div>
         </div>
       </div>

@@ -69,10 +69,10 @@ async function startServer() {
         try {
           let result;
           if (route.key) {
-            result = await route.handler(req.body[route.key]);
+            result = await (route.handler as any)(req.body[route.key]);
           } else if (route.keys) {
             const args = route.keys.map(k => req.body[k]);
-            result = await route.handler(...args);
+            result = await (route.handler as any)(...args);
           }
           
           if (route.path === "/ai/chat") {

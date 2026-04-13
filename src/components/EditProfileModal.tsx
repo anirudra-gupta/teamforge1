@@ -38,6 +38,8 @@ export default function EditProfileModal({ profile, onUpdate }: EditProfileModal
     bio: profile.bio || '',
     role: profile.role || '',
     lookingFor: profile.lookingFor || '',
+    skills: Array.isArray(profile.skills) ? profile.skills.join(', ') : '',
+    interests: Array.isArray(profile.interests) ? profile.interests.join(', ') : '',
     photoURL: profile.photoURL || '',
     coverURL: profile.coverURL || ''
   });
@@ -69,8 +71,13 @@ export default function EditProfileModal({ profile, onUpdate }: EditProfileModal
     setLoading(true);
     try {
       const profileRef = doc(db, 'profiles', profile.uid);
-      await updateDoc(profileRef, formData);
-      onUpdate({ ...profile, ...formData });
+      const updateData = {
+        ...formData,
+        skills: formData.skills.split(',').map(s => s.trim()).filter(s => s !== ''),
+        interests: formData.interests.split(',').map(i => i.trim()).filter(i => i !== '')
+      };
+      await updateDoc(profileRef, updateData);
+      onUpdate({ ...profile, ...updateData });
       toast.success('Profile updated successfully!');
       setIsOpen(false);
     } catch (error) {
@@ -190,6 +197,22 @@ export default function EditProfileModal({ profile, onUpdate }: EditProfileModal
                 value={formData.bio}
                 onChange={e => setFormData({...formData, bio: e.target.value})}
                 className="bg-white border-none rounded-xl min-h-[100px] font-bold"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-[#564338]/60">Skills (comma separated)</label>
+              <Input 
+                value={formData.skills}
+                onChange={e => setFormData({...formData, skills: e.target.value})}
+                className="bg-white border-none rounded-xl h-12 font-bold"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-[#564338]/60">Interests (comma separated)</label>
+              <Input 
+                value={formData.interests}
+                onChange={e => setFormData({...formData, interests: e.target.value})}
+                className="bg-white border-none rounded-xl h-12 font-bold"
               />
             </div>
           </div>

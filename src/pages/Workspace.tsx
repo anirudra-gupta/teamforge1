@@ -41,7 +41,13 @@ import {
   Save,
   History,
   Zap,
-  TrendingUp
+  TrendingUp,
+  Star,
+  BarChart3,
+  Target,
+  DollarSign,
+  ShieldAlert,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -231,6 +237,21 @@ export default function Workspace() {
     }
   };
 
+  const handleRevertVersion = async (versionContent: string) => {
+    if (!ideaId) return;
+    try {
+      await updateDoc(doc(db, 'ideas', ideaId), {
+        description: versionContent,
+        updatedAt: serverTimestamp()
+      });
+      setForgeContent(versionContent);
+      toast.success("Idea reverted to selected version!");
+    } catch (error) {
+      console.error("Failed to revert version:", error);
+      toast.error("Failed to revert version.");
+    }
+  };
+
   if (loading) return null;
 
   return (
@@ -288,6 +309,7 @@ export default function Workspace() {
                     { id: 'forge', label: 'Idea Forge', icon: PenTool },
                     { id: 'chat', label: 'Forge Chat', icon: MessageSquare },
                     { id: 'tasks', label: 'Kanban Board', icon: CheckSquare },
+                    { id: 'validation', label: 'AI Analysis', icon: Sparkles },
                     { id: 'milestones', label: 'Milestones', icon: Flag },
                     { id: 'files', label: 'Blueprint Files', icon: FileText }
                   ].map(tab => (
@@ -371,14 +393,24 @@ export default function Workspace() {
                                       <span className="text-[10px] font-bold text-[#903f00]">
                                         {v.createdAt?.toDate ? format(v.createdAt.toDate(), 'MMM d, h:mm a') : 'Just now'}
                                       </span>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="h-6 px-2 text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={() => setForgeContent(v.description)}
-                                      >
-                                        Restore
-                                      </Button>
+                                      <div className="flex gap-2">
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          className="h-6 px-2 text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity"
+                                          onClick={() => setForgeContent(v.description)}
+                                        >
+                                          Preview
+                                        </Button>
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm" 
+                                          className="h-6 px-2 text-[10px] font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity border-[#903f00]/20 text-[#903f00]"
+                                          onClick={() => handleRevertVersion(v.description)}
+                                        >
+                                          Revert
+                                        </Button>
+                                      </div>
                                     </div>
                                     <p className="text-xs text-[#564338] line-clamp-3 mb-3 leading-relaxed">{v.description}</p>
                                     <div className="flex items-center gap-2">
@@ -588,6 +620,156 @@ export default function Workspace() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="validation" className="absolute inset-0 m-0 flex flex-col p-8 overflow-y-auto custom-scrollbar">
+                  <div className="max-w-4xl mx-auto w-full space-y-12 pb-12">
+                    {!idea?.aiValidation ? (
+                      <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
+                        <div className="w-20 h-20 bg-[#fcf3e3] rounded-[2rem] flex items-center justify-center">
+                          <AlertCircle className="w-10 h-10 text-[#903f00]/20" />
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-black text-[#1f1b12]">No AI Analysis Found</h3>
+                          <p className="text-[#564338] font-bold italic opacity-60 mt-2">This idea hasn't been validated by our AI engine yet.</p>
+                        </div>
+                        <Button className="bg-[#1f1b12] text-white rounded-2xl px-8 h-12 font-black shadow-lg">
+                          Run Validation Now
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-12">
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                          <div>
+                            <h2 className="text-4xl font-black text-[#1f1b12] flex items-center gap-3">
+                              <Sparkles className="w-10 h-10 text-[#903f00]" />
+                              AI Validation Report
+                            </h2>
+                            <p className="text-[#564338] font-bold mt-2 opacity-60">A deep analysis of your vision's viability and market potential.</p>
+                          </div>
+                          <div className="flex items-center gap-4 bg-white px-8 py-4 rounded-[2rem] border border-[#903f00]/10 shadow-xl">
+                            <div className="text-right">
+                              <p className="text-[10px] font-black text-[#564338]/40 uppercase tracking-widest">Viability Score</p>
+                              <p className="text-2xl font-black text-[#903f00]">{idea.aiValidation.score}%</p>
+                            </div>
+                            <div className="flex gap-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star 
+                                  key={i} 
+                                  className={cn(
+                                    "w-6 h-6",
+                                    i < Math.round(idea.aiValidation.score / 20) ? "text-[#903f00] fill-[#903f00]" : "text-[#903f00]/20"
+                                  )} 
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                          <div className="lg:col-span-2 space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <Card className="p-8 rounded-[2.5rem] bg-white border border-[#111111]/5 shadow-sm">
+                                <h3 className="text-lg font-black text-[#1f1b12] mb-6 flex items-center gap-2">
+                                  <TrendingUp className="w-5 h-5 text-emerald-600" />
+                                  Core Strengths
+                                </h3>
+                                <div className="space-y-4">
+                                  {idea.aiValidation.strengths.map((s: string, i: number) => (
+                                    <div key={i} className="flex items-start gap-3">
+                                      <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                                      <p className="text-xs text-[#564338] font-bold leading-relaxed">{s}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </Card>
+
+                              <Card className="p-8 rounded-[2.5rem] bg-white border border-[#111111]/5 shadow-sm">
+                                <h3 className="text-lg font-black text-[#1f1b12] mb-6 flex items-center gap-2">
+                                  <AlertCircle className="w-5 h-5 text-rose-600" />
+                                  Potential Risks
+                                </h3>
+                                <div className="space-y-4">
+                                  {idea.aiValidation.weaknesses.map((w: string, i: number) => (
+                                    <div key={i} className="flex items-start gap-3">
+                                      <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+                                      <p className="text-xs text-[#564338] font-bold leading-relaxed">{w}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </Card>
+                            </div>
+
+                            <Card className="p-10 rounded-[2.5rem] bg-[#fcf3e3] border border-[#903f00]/10">
+                              <h3 className="text-2xl font-black text-[#1f1b12] mb-10 flex items-center gap-3">
+                                <BarChart3 className="w-7 h-7 text-[#903f00]" />
+                                Metric Analysis
+                              </h3>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                                {[
+                                  { label: 'Competition', key: 'competition', icon: Target },
+                                  { label: 'Demand', key: 'demand', icon: Users },
+                                  { label: 'Monetization', key: 'monetization', icon: DollarSign },
+                                  { label: 'Risks', key: 'risks', icon: ShieldAlert },
+                                  { label: 'Future Potential', key: 'futurePotential', icon: TrendingUp }
+                                ].map((metric) => (
+                                  <div key={metric.key} className="space-y-3">
+                                    <div className="flex justify-between items-center">
+                                      <div className="flex items-center gap-2 text-sm font-black text-[#1f1b12]">
+                                        <metric.icon className="w-4 h-4 text-[#903f00]" />
+                                        {metric.label}
+                                      </div>
+                                      <span className="text-sm font-black text-[#903f00]">{idea.aiValidation.metrics[metric.key]}/10</span>
+                                    </div>
+                                    <div className="h-3 w-full bg-white rounded-full overflow-hidden shadow-inner">
+                                      <motion.div 
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${idea.aiValidation.metrics[metric.key] * 10}%` }}
+                                        className="h-full bg-[#903f00] rounded-full shadow-lg"
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </Card>
+                          </div>
+
+                          <div className="space-y-8">
+                            <Card className="bg-[#1f1b12] border-none rounded-[2.5rem] shadow-2xl overflow-hidden">
+                              <CardHeader className="p-8 pb-4">
+                                <CardTitle className="text-white flex items-center gap-3 text-xl font-black">
+                                  <Users className="w-6 h-6 text-[#903f00]" /> Top Competitors
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="p-8 pt-4">
+                                <div className="flex flex-wrap gap-3">
+                                  {idea.aiValidation.competitors.map((c: string, i: number) => (
+                                    <span key={i} className="bg-white/10 hover:bg-white/20 transition-colors px-4 py-2 rounded-xl text-xs font-bold text-white border border-white/5">
+                                      {c}
+                                    </span>
+                                  ))}
+                                </div>
+                              </CardContent>
+                            </Card>
+
+                            <div className="bg-white p-10 rounded-[2.5rem] border border-[#111111]/5 shadow-xl">
+                              <h3 className="text-xl font-black text-[#1f1b12] mb-8">Strategic Suggestions</h3>
+                              <div className="space-y-6">
+                                {idea.aiValidation.suggestions.map((s: string, i: number) => (
+                                  <div key={i} className="flex items-start gap-4">
+                                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                                      <Sparkles className="w-4 h-4" />
+                                    </div>
+                                    <p className="text-xs text-[#564338] font-bold leading-relaxed">{s}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
 
