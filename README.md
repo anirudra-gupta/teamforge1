@@ -38,6 +38,7 @@ Founders can accept team members, form teams, and start building real startups.
 💬 Messaging system
 🎯 Vision
 
+**TEAMFORGE aims to become the place where startups begin — a platform where anyone can go from idea → team → product.**
 TEAMFORGE aims to become the place where startups begin — a platform where anyone can go from idea → team → product.
 
 ## 🚀 Status

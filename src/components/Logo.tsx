@@ -15,7 +15,7 @@ export const Logo: React.FC<LogoProps> = ({ className, showText = true, variant 
         <svg 
           viewBox="0 0 100 100" 
           fill="none" 
-          xmlns="http://www.w3.org/2000/svg"
+          xmlns="https://github.com/TeamForge01/teamforge.in/blob/main/team%20forge%20logo%202.jpeg"
           className="w-full h-full"
         >
           {/* Main vertical stroke with curve */}
