@@ -58,9 +58,9 @@ export default function IdeaValidation() {
       const data = await validateIdea(description, targetAudience, revenueModel, geography);
       setResult(data);
       toast.success("Idea validated successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Validation error:", error);
-      toast.error("Failed to validate idea. Please try again.");
+      toast.error(error.message || "Failed to validate idea. Please try again.");
     } finally {
       setIsValidating(false);
     }

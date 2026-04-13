@@ -61,6 +61,7 @@ import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
 import { DashboardSidebar } from '../components/DashboardSidebar';
+import { validateIdea } from '../lib/gemini';
 
 export default function Workspace() {
   const { ideaId } = useParams();
@@ -249,6 +250,34 @@ export default function Workspace() {
     } catch (error) {
       console.error("Failed to revert version:", error);
       toast.error("Failed to revert version.");
+    }
+  };
+
+  const handleRunValidation = async () => {
+    if (!ideaId || !idea) return;
+    setLoading(true);
+    try {
+      const validation = await validateIdea({
+        title: idea.title,
+        description: idea.description,
+        problem: idea.problem,
+        solution: idea.solution,
+        targetAudience: idea.targetAudience,
+        revenueModel: idea.revenueModel,
+        geography: idea.geography
+      });
+      
+      await updateDoc(doc(db, 'ideas', ideaId), {
+        aiValidation: validation,
+        updatedAt: serverTimestamp()
+      });
+      
+      toast.success("AI Validation Complete!");
+    } catch (error: any) {
+      console.error("Failed to validate idea:", error);
+      toast.error(error.message || "Validation failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -634,7 +663,10 @@ export default function Workspace() {
                           <h3 className="text-2xl font-black text-[#1f1b12]">No AI Analysis Found</h3>
                           <p className="text-[#564338] font-bold italic opacity-60 mt-2">This idea hasn't been validated by our AI engine yet.</p>
                         </div>
-                        <Button className="bg-[#1f1b12] text-white rounded-2xl px-8 h-12 font-black shadow-lg">
+                        <Button 
+                          onClick={handleRunValidation}
+                          className="bg-[#1f1b12] text-white rounded-2xl px-8 h-12 font-black shadow-lg"
+                        >
                           Run Validation Now
                         </Button>
                       </div>

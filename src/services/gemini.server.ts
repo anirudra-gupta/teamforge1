@@ -3,9 +3,9 @@ import { GoogleGenAI, Type } from "@google/genai";
 console.log("Gemini Server Service Loading...");
 
 const getApiKey = () => {
-  const key = process.env.GEMINI_API_KEY;
+  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!key || key === "MY_GEMINI_API_KEY") {
-    console.error("GEMINI_API_KEY is missing in server environment.");
+    console.error("CRITICAL: GEMINI_API_KEY is missing in server environment.");
     return "";
   }
   return key;

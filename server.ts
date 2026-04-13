@@ -21,6 +21,7 @@ async function startServer() {
     console.log("Starting TeamForge Server...");
     console.log("NODE_ENV:", process.env.NODE_ENV);
     console.log("CWD:", process.cwd());
+    console.log("GEMINI_API_KEY present:", !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "MY_GEMINI_API_KEY"));
 
     const app = express();
     const PORT = 3000;
