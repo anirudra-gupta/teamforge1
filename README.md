@@ -58,3 +58,9 @@ Instead of learning about startups, users build them.
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+
+------
+## *the project is closed*
+> this project was started by Anirudra Gupta
+github.com/buildwithanirudra 
